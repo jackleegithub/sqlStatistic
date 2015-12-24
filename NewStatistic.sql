@@ -51,6 +51,7 @@ CREATE TABLE [Info].[CourseClass]
 (
 	ID	int IDENTITY NOT NULL PRIMARY KEY,
 	Name	nvarchar(100)	NOT NULL,
+	CampusID	int NOT NULL REFERENCES [Info].[Campus](ID),
 	Remark	nvarchar(1000)	NULL
 );
 GO

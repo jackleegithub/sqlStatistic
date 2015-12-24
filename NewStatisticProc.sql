@@ -267,8 +267,12 @@ AS
 	UNION
 	SELECT [LoginID], [Name] FROM dbo.StuInfo  WHERE [Grade] = @GradeID AND [Class] = @ClassID;
 GO
+
+
+CREATE PROCEDURE uspGetCourseClassInfo
+AS
+	SET NOCOUNT ON;
+	SELECT [ID], [Name] FROM Info.CourseClass;
+GO
+
 */
-
-
-
-
