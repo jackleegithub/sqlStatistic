@@ -1,12 +1,5 @@
-
 USE Statistic;
 GO
-
-/*
-2015-12-27
---修改uspGetCourseInfo
-----增加输入参数@CampusID,以区分不同校区的课程信息。
-*/
 /*
 
 CREATE FUNCTION [dbo].[fnGetCourseNameByStuID]
@@ -129,64 +122,33 @@ AS
 			   ,dbo.fnGetCourseNameByStuID([LoginID], 6) AS ContestName
 		FROM StuInfo
 		WHERE [LoginID]  = @StuID;
-	END;
+	END
+GO
+
+--get the category of course;
+CREATE PROCEDURE uspGetCourseCategory
+AS
+	SET NOCOUNT ON;
+	SELECT [ID], [Name] FROM [info].[CourseClass] ;
 GO	
 
---get course name by campus grade class and stu v2.0 2015-12-27
-CREATE PROC uspGetCourseNameDynamic
+--get the count of stueden in on course by course category id
+CREATE PROCEDURE uspGetStuCountInCourse
 (
-	@CampusID int,
-	@GradeID int,
-	@Class	int,
-	@StuID	varchar(10)
+	@CampusID int ,
+	@CourseCategoryID int
 )
 AS
 	SET NOCOUNT ON;
 	
-	DECLARE @str varchar(2000) ;
-	DECLARE @minCourseClassID int;
-
-	SET @str = 'SELECT [LoginID],[Name]'
-	SELECT @minCourseClassID = MIN(ID) FROM Info.CourseClass;
-	WHILE @minCourseClassID IS NOT NULL
-	BEGIN
-		SET @str = @str + ',dbo.fnGetCourseNameByStuID([LoginID],' + CAST(@minCourseClassID as varchar) +') AS Column' + CAST(@minCourseClassID as varchar);
-		SELECT @minCourseClassID = MIN(ID) FROM Info.CourseClass WHERE [ID] >  @minCourseClassID;
-	END
-	SET @str = @str + ' FROM StuInfo'
-	
-	IF '0' = @StuID
-	BEGIN
-		IF 0 = @Class
-		BEGIN
-			IF 0 = @GradeID
-			BEGIN
-				IF 0 = @CampusID 
-				BEGIN -- (0,0,0,0)
-					SET @str = @str + ' WHERE 1 = 1';
-				END
-				ELSE
-				BEGIN -- (1,0,0,0)
-					SET @str = @str + ' WHERE [CampusID]   =' + CAST(@CampusID AS varchar);
-				END
-			END
-			ELSE
-			BEGIN -- (1,1,0,0)
-				SET @str = @str + ' WHERE [CampusID] = '+ CAST(@CampusID AS varchar) + ' AND [Grade] = ' + CAST(@GradeID AS varchar) ;
-			END
-		END
-		ELSE
-		BEGIN -- (1,1,1,0)
-			SET @str = @str + ' WHERE [CampusID] ='+ CAST(@CampusID AS varchar) + ' AND [Grade] ='+ CAST(@GradeID AS varchar)+' AND [Class] = ' + CAST(@Class AS varchar);
-		END
-	END
-	ELSE
-	BEGIN --(1,1,1,1)
-		SET @str = @str + ' WHERE [LoginID]  = ''' +  @StuID + '''';
-	END;
-	
-	EXEC (@str);
+	SELECT sc.CourseID ,count(sc.StuID) AS StuCount, c.CampusID, c.Name as CourseName, c.CourseClassID AS CourseCategory
+	FROM DBO.Course AS c
+		inner join info.CourseClass AS cc ON cc.ID= c.CourseClassID 
+		RIGHT JOIN dbo.StuCourse as sc ON sc.CourseID = c.ID 
+	WHERE c.CampusID = @CampusID  AND c.CourseClassID = @CourseCategoryID 
+	GROUP BY sc.CourseID , c.CampusID,c.Name, c.CourseClassID;
 GO
+
 
 CREATE PROC uspGetCourseNameByStuID
 (
@@ -220,24 +182,13 @@ BEGIN
 	END
 END
 
-
-
-/*
-获取课程信息
-Parameter:
-	*CourseClassID int 课程分类ID
-	*CampusID int 校区ID
-Return：
-	*课程ID，名称的表
-*/
 CREATE PROC uspGetCourseInfo
 (	
-	@CourseClassID int,
-	@CampusID int
+	@CourseClassID int 
 )
 AS
 	SET NOCOUNT ON
-	SELECT [id],[name] FROM dbo.Course WHERE [CourseClassID] = @CourseClassID AND [CampusID] = @CampusID;
+	SELECT [id],[name] FROM dbo.Course WHERE [CourseClassID] = @CourseClassID;
 GO
 
 
@@ -245,12 +196,11 @@ GO
 CREATE PROC CheckLogin		--VERSION 2
 	@LoginID varchar(10),
 	@LoginPwd varchar(20),
-	@Roles varchar(100) OUTPUT,
-	@CampusID int OUTPUT
+	@Roles varchar(100) OUTPUT
 AS
 	SET NOCOUNT ON;
 	DECLARE @tID varchar(10) = NULL;
-	SELECT @tID  = [LoginID], @Roles = [Roles], @CampusID = [CampusID] FROM dbo.StuInfo WHERE [LoginID] = @LoginID AND [pwd] = @LoginPwd;
+	SELECT @tID  = [LoginID], @Roles = [Roles] FROM dbo.StuInfo WHERE [LoginID] = @LoginID AND [pwd] = @LoginPwd;
 	IF @tID IS NULL
 		BEGIN
 			RETURN 1;
@@ -339,10 +289,17 @@ GO
 
 
 CREATE PROCEDURE uspGetCourseClassInfo
-
 AS
 	SET NOCOUNT ON;
 	SELECT [ID], [Name] FROM Info.CourseClass;
 GO
 
 */
+CREATE PROCEDURE uspGetCourseClassByCampusID
+(
+	@CampusID int
+)
+AS
+	SET NOCOUNT ON;
+	SELECT [ID], [Name] FROM Info.CourseClass;
+GO
